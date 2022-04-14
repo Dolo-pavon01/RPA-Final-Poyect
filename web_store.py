@@ -1,4 +1,3 @@
-
 from excel import Excel
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -30,7 +29,7 @@ class MyStore:
                 Ec.element_to_be_clickable((By.XPATH, xpath))).click()
 
         except Exception as e:
-            message = st.MESSAGE_ELEMENT_NOT_CLICKED + xpath +  f':{ str(e)}'
+            message = st.MESSAGE_ELEMENT_NOT_CLICKED + xpath + f':{ str(e)}'
             self.__log.LogError(message)
             raise Exception(e)
 
@@ -40,7 +39,7 @@ class MyStore:
                 (By.XPATH, xpath))).send_keys(keys)
 
         except Exception as e:
-            message = st.MESSAGE_ELEMENT_NOT_SENT_KEYS + xpath +  f':{ str(e)}'
+            message = st.MESSAGE_ELEMENT_NOT_SENT_KEYS + xpath + f':{ str(e)}'
             self.__log.LogError(message)
             raise Exception(e)
 
@@ -49,7 +48,7 @@ class MyStore:
             elemento = self.__wd.find_element(by=By.XPATH, value=xpath)
             return elemento
         except Exception as e:
-            message = st.MESSAGE_ELEMENT_NOT_FOUND + xpath +  f':{ str(e)}'
+            message = st.MESSAGE_ELEMENT_NOT_FOUND + xpath + f':{ str(e)}'
             self.__log.LogError(message)
             raise Exception(e)
 
@@ -59,7 +58,7 @@ class MyStore:
                 (By.XPATH, st.SEARCH))).clear()
 
         except Exception as e:
-            message = st.MESSAGE_INPUT_SEARCH_NOT_SET +  f':{ str(e)}'
+            message = st.MESSAGE_INPUT_SEARCH_NOT_SET + f':{ str(e)}'
             self.__log.LogError(message)
             raise Exception(e)
 
@@ -85,7 +84,8 @@ class MyStore:
 
         except Exception as e:
 
-            message = st.MESSAGE_OPTION_NOT_SELECTED + xpath + xpath_option +  f':{ str(e)}'
+            message = st.MESSAGE_OPTION_NOT_SELECTED + \
+                xpath + xpath_option + f':{ str(e)}'
             self.__log.LogError(message)
             raise Exception(e)
 
@@ -98,7 +98,8 @@ class MyStore:
 
         except Exception as e:
 
-            message = st.MESSAGE_STORE_PAGE_NOT_OPEN + self.__url +  f':{ str(e)}'
+            message = st.MESSAGE_STORE_PAGE_NOT_OPEN + \
+                self.__url + f':{ str(e)}'
             self.__log.LogWarning(message)
             raise Exception(e)
 
@@ -132,12 +133,12 @@ class MyStore:
             alias_user = self.__find_element(st.ALIAS_INPUT)
             alias_user.clear()
             alias_user.send_keys(st.ALIAS_USER)
-    
+
             self.__element_to_be_clickable_click(st.SUBMIT_CREATE_ACCOUNT)
 
         except Exception as e:
 
-            message = st.MESSAGE_REGISTER_NOT_DONE +  f':{ str(e)}'
+            message = st.MESSAGE_REGISTER_NOT_DONE + f':{ str(e)}'
             self.__log.LogError(message)
             raise Exception(e)
 
@@ -153,7 +154,7 @@ class MyStore:
 
         except Exception as e:
 
-            message = st.MESSAGE_LOGIN_NOT_DONE +  f':{ str(e)}'
+            message = st.MESSAGE_LOGIN_NOT_DONE + f':{ str(e)}'
             self.__log.LogError(message)
             raise Exception(e)
 
@@ -165,7 +166,8 @@ class MyStore:
             self.__element_to_be_clickable_click(st.SEARCH_BUTTON)
 
         except Exception as e:
-            message = st.MESSAGE_PRODUCT_NOT_SEARCHED + name_dress +  f':{ str(e)}'
+            message = st.MESSAGE_PRODUCT_NOT_SEARCHED + \
+                name_dress + f':{ str(e)}'
             self.__log.LogError(message)
             raise Exception(e)
 
@@ -176,7 +178,7 @@ class MyStore:
                 by=By.XPATH, value=st.SEARCH_PRODUCTS_RESULTS)
 
             for i in range(len(results)):
-                texto = results[i].text
+
                 results[i].click()
                 model_dress = self.__find_element(
                     st.MODEL_PRODUCT)
@@ -202,7 +204,7 @@ class MyStore:
             return None
         except Exception as e:
 
-            message = st.MESSAGE_MODEL_NOT_SEARCHED + model +  f':{ str(e)}'
+            message = st.MESSAGE_MODEL_NOT_SEARCHED + model + f':{ str(e)}'
             self.__log.LogError(message)
             raise Exception(e)
 
@@ -272,11 +274,9 @@ def main():
 
     try:
 
-        
         page = MyStore()
         page.open_store()
 
-        
         page.register_user()
         file = Excel(st.ARCHIVO_STORE, st.MAX_COLUMS)
 
@@ -295,7 +295,7 @@ def main():
             color = ((data_element[st.COLOR]).replace(
                 st.SEPARATE_COLOR, '')).title()
             unit_price = page.find_model(data_element[st.MODEL], color)
-            
+
             if unit_price:
 
                 data_element[st.UNIT_PRICE] = unit_price
@@ -317,13 +317,13 @@ def main():
 
                     waiting_to_buy.append(
                         (ordered - max_quantity, data_element))
-                    spent_total += (max_quantity*unit_price)
+                    spent_total += (ordered * unit_price)
             else:
                 not_found.append(data_element)
                 saved += purchase_unitary_limit
 
             list_elements_to_buy.append(data_element)
-            
+
         for (quantity, data_element) in waiting_to_buy:
 
             page.search_dress(data_element[st.NAME_ELEMENT])
@@ -366,12 +366,13 @@ def main():
 
     except Exception as e:
 
-        message = st.MESSAGE_UNEXPECTED_ERROR
+        # message = st.MESSAGE_UNEXPECTED_ERROR
         raise Exception(e)
 
     finally:
 
         page.quit()
 
+if __name__ == '__main__':
+    main()
 
-main()
