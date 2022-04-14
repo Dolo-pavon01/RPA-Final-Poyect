@@ -81,7 +81,7 @@ def main():
                 app.write_in_cel(text)
                 app.go_next()
             remove(f'./facturas/{name_bill}.xlsx')
-
+            
         app.save_bills()
         app.exit()
 
