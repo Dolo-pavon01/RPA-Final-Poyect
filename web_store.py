@@ -129,8 +129,8 @@ class MyStore:
             alias_user = self.__find_element(st.ALIAS_INPUT)
             alias_user.clear()
             alias_user.send_keys(st.ALIAS_USER)
-            # self.__element_to_be_clickable_send_keys(st.ALIAS_INPUT, st.ALIAS_USER)
-            # self.__element_to_be_clickable_click(st.SUBMIT_CREATE_ACCOUNT)
+    
+            self.__element_to_be_clickable_click(st.SUBMIT_CREATE_ACCOUNT)
 
         except Exception as e:
 
