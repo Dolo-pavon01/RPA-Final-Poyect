@@ -2,7 +2,7 @@
 import pyautogui 
 from excel import Excel
 from os import remove
-import settings as st
+import settings.settings as st
 
 
 class CalyxBotBills:
