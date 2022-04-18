@@ -413,7 +413,7 @@ def main():
         purchasing_manager.quit()
 
     except Exception as e:
-        print(e)
+        raise Exception(e)
 
 
 if __name__ == '__main__':
