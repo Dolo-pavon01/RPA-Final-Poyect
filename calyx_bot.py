@@ -1,27 +1,35 @@
 
 import pyautogui
-from excel import Excel
+from excel.excel import Excel
 from os import remove
 import settings.settings as st
+from logs.sistem_log import MySystemLogs
 
 
 class CalyxBotBills:
 
     def __init__(self):
         self.__bot = pyautogui
+        self.__log = MySystemLogs(st.CALYX_LOG)
 
     def __locate_and_click_center_on_screnn(self, path):
-        location = self.__bot.locateCenterOnScreen(path)
-
-        tries = 0
-        while((not location) and tries < st.MAX):
+        try:
             location = self.__bot.locateCenterOnScreen(path)
-            tries += 1
 
-        if (tries >= st.MAX):
-            raise TimeoutError(f"Couldn't locate -{path}")
+            tries = 0
+            while((not location) and tries < st.MAX):
+                location = self.__bot.locateCenterOnScreen(path)
+                tries += 1
 
-        self.__bot.click(location, interval=st.INTER_OF_CLICK)
+            if (tries >= st.MAX):
+                raise TimeoutError(f"Couldn't locate -{path}")
+
+            self.__bot.click(location, interval=st.INTER_OF_CLICK)
+
+        except Exception as e:
+            message = st.CANNOT_LOCATE_SCREEN + path
+            self.__log.LogWarning(message)
+            raise(e)
 
     def __write(self, text):
         self.__bot.write(text, interval=st.INTER_OF_WRITE)
@@ -80,8 +88,9 @@ def main():
             for text in [str(id), name, str(cost), str(amount), str(subtotal)]:
                 app.write_in_cel(text)
                 app.go_next()
+
             remove(f'./facturas/{name_bill}.xlsx')
-            
+
         app.save_bills()
         app.exit()
 

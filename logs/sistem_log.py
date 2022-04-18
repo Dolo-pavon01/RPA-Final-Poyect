@@ -3,25 +3,26 @@ import logging
 
 
 FORMAT = '%(asctime)s-%(levelname)s : %(message)s'
-FILENAME = 'SystemTest.log'
+FILENAME = 'Test.log'
 
-DEBUG_LEVEL= 'debug.log'
+DEBUG_LEVEL = 'debug.log'
 INFO_LEVEL = 'info.log'
 WARNING_LEVEL = 'warning.log'
 ERROR_LEVEL = 'error.log'
 CRITICAL_LEVEL = 'critical.log'
 
-DEBUG_INDEX= 0
+DEBUG_INDEX = 0
 INFO_INDEX = 1
 WARNING_INDEX = 2
 ERROR_INDEX = 3
-CRITICAL_INDEX =4
+CRITICAL_INDEX = 4
 
 LEVEL_LIST = [(DEBUG_LEVEL, logging.DEBUG),
-                     (INFO_LEVEL, logging.INFO),
-                     (WARNING_LEVEL, logging.WARNING),
-                     (ERROR_LEVEL, logging.ERROR),
-                     (CRITICAL_LEVEL, logging.CRITICAL)]
+              (INFO_LEVEL, logging.INFO),
+              (WARNING_LEVEL, logging.WARNING),
+              (ERROR_LEVEL, logging.ERROR),
+              (CRITICAL_LEVEL, logging.CRITICAL)]
+
 
 class LevelFilter(logging.Filter):
 
@@ -34,14 +35,13 @@ class LevelFilter(logging.Filter):
 
 class MySystemLogs():
 
-    def __init__(self,name):
+    def __init__(self, name):
 
-        
         self.__logger = logging.getLogger(name)
-        self.__filename = FILENAME
+        self.__filename = name + FILENAME
         self.__format = logging.Formatter(FORMAT)
-        self.__levels= set()
-        
+        self.__levels = set()
+        self.__log_name = name
         self.__logger.setLevel(logging.DEBUG)
 
         mainHandler = logging.FileHandler(self.__filename)
@@ -49,8 +49,6 @@ class MySystemLogs():
         mainHandler.setFormatter(self.__format)
 
         self.__logger.addHandler(mainHandler)
-
-    
 
     def __addLevelHandlers(self, level):
 
@@ -67,8 +65,7 @@ class MySystemLogs():
         # This function should receive a levelName and the int level of logging,
         # and create a handler and a filter to receive only logs of that level.
 
-        
-        handlerLevel = logging.FileHandler(levelName)
+        handlerLevel = logging.FileHandler(self.__log_name + levelName)
         handlerLevel.setLevel(levelNumber)
         handlerLevel.setFormatter(self.__format)
         handlerLevel.addFilter(LevelFilter(levelNumber))
@@ -90,13 +87,12 @@ class MySystemLogs():
             self.__addLevelHandlers(LEVEL_LIST[WARNING_INDEX])
         self.__logger.warning(message)
 
-    def LogError(self, message,exception = False):
+    def LogError(self, message, exception=False):
         if(ERROR_LEVEL not in self.__levels):
             self.__addLevelHandlers(LEVEL_LIST[ERROR_INDEX])
-        self.__logger.error(message,exc_info= exception)
+        self.__logger.error(message, exc_info=exception)
 
     def LogCritical(self, message):
         if(CRITICAL_LEVEL not in self.__levels):
             self.__addLevelHandlers(LEVEL_LIST[CRITICAL_INDEX])
         self.__logger.critical(message)
-

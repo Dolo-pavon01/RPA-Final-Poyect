@@ -1,4 +1,5 @@
-from excel import Excel
+
+from excel.excel import Excel
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -8,6 +9,7 @@ import settings.settings as st
 import time
 
 from logs.sistem_log import MySystemLogs
+
 CARD = st.CARD
 CHEQUE = st.CHEQUE
 
@@ -20,8 +22,28 @@ class MyStore:
             self.__url = st.URL
             self.__wd = webdriver.Chrome()
             self.__log = MySystemLogs(st.SYSTEMLOG)
+
+            self.__saved = 0
+            self.__max_amount_buy = st.PURCHASE_UNITARY_LIMIT
+            self.__total = 0
+
+            self.__open_store()
         except Exception as e:
             raise(e)
+
+    def __open_store(self):
+        try:
+
+            self.__wd.get(self.__url)
+            self.__wd.maximize_window()
+            self.__wd.implicitly_wait(10)
+
+        except Exception as e:
+
+            message = st.MESSAGE_STORE_PAGE_NOT_OPEN + \
+                self.__url + f':{ str(e)}'
+            self.__log.LogWarning(message)
+            raise Exception(e)
 
     def __element_to_be_clickable_click(self, xpath):
         try:
@@ -45,7 +67,8 @@ class MyStore:
 
     def __find_element(self, xpath):
         try:
-            elemento = self.__wd.find_element(by=By.XPATH, value=xpath)
+            elemento = WebDriverWait(self.__wd, 10).until(Ec.element_to_be_clickable(
+                (By.XPATH, xpath)))
             return elemento
         except Exception as e:
             message = st.MESSAGE_ELEMENT_NOT_FOUND + xpath + f':{ str(e)}'
@@ -72,9 +95,9 @@ class MyStore:
             options_available = select_options.find_elements(
                 By.XPATH, xpath_option)
             found = False
-            for i in options_available:
-                if i.text == option:
-                    i.click()
+            for option_available in options_available:
+                if option_available.text == option:
+                    option_available.click()
                     found = True
                     break
             if not found:
@@ -89,21 +112,7 @@ class MyStore:
             self.__log.LogError(message)
             raise Exception(e)
 
-    def open_store(self):
-        try:
-
-            self.__wd.get(self.__url)
-            self.__wd.maximize_window()
-            self.__wd.implicitly_wait(10)
-
-        except Exception as e:
-
-            message = st.MESSAGE_STORE_PAGE_NOT_OPEN + \
-                self.__url + f':{ str(e)}'
-            self.__log.LogWarning(message)
-            raise Exception(e)
-
-    def register_user(self):
+    def __register_user(self):
 
         try:
             self.__element_to_be_clickable_click(st.LOGIN_BUTTON)
@@ -142,7 +151,7 @@ class MyStore:
             self.__log.LogError(message)
             raise Exception(e)
 
-    def login_user(self, user, password):
+    def __login_user(self, user, password):
 
         try:
 
@@ -158,7 +167,7 @@ class MyStore:
             self.__log.LogError(message)
             raise Exception(e)
 
-    def search_dress(self, name_dress):
+    def __search_dress(self, name_dress):
 
         try:
 
@@ -171,9 +180,15 @@ class MyStore:
             self.__log.LogError(message)
             raise Exception(e)
 
-    def find_model(self, model, color):
+    def __find_model(self, model, color):
 
         try:
+
+            find = self.__find_element(st.SEARCH_PRODUCT_LISTING)
+            find = (find.text)[0]
+            if find == st.NOT_RESULT:
+                self.__set_search()
+                return None
             results = self.__wd.find_elements(
                 by=By.XPATH, value=st.SEARCH_PRODUCTS_RESULTS)
 
@@ -208,27 +223,30 @@ class MyStore:
             self.__log.LogError(message)
             raise Exception(e)
 
-    def add_to_cart(self, quiantity):
+    def __add_to_cart(self, quantity):
         try:
-            ordered = 1
-            while(ordered < quiantity):
+
+            for _ in range(1, quantity):
                 self.__element_to_be_clickable_click(st.ICON_PLUS)
-                ordered += 1
 
             self.__element_to_be_clickable_click(st.ADD_TO_CART)
+
+            real_quantity = self.__find_element(st.TAKE_QUANTITY)
+            real_quantity = int(real_quantity.text)
+
             self.__element_to_be_clickable_click(st.EXIT_EMERGETN_WINDOW)
 
-            return ordered
+            return real_quantity
 
         except Exception as e:
             message = st.MESSAGE_NOT_ADDED_TO_CART + f':{ str(e)}'
             self.__log.LogError(message)
             raise Exception(e)
 
-    def buy_elements(self, type_of_payment=CARD):
+    def __buy_elements(self, type_of_payment=CARD):
 
         try:
-
+            self.__register_user()
             self.__element_to_be_clickable_click(st.GO_CART)
 
             total_shipping = self.__find_element(st.TOTAL_SHIPPING)
@@ -266,6 +284,87 @@ class MyStore:
 
             raise Exception(e)
 
+    def ___order_product(self, product_name, model, color, quantity):
+
+        try:
+            ordered = 0
+            totals = None
+            stock = False
+            self.__search_dress(product_name)
+            unit_price = self.__find_model(model, color)
+
+            if(unit_price):
+                total_purchase = unit_price * quantity
+                if(total_purchase < self.__max_amount_buy):
+                    ordered = self.__add_to_cart(quantity)
+                    stock = (ordered == quantity)
+                else:
+                    max_quantity = int(self.__max_amount_buy/unit_price)
+                    ordered = self.__add_to_cart(max_quantity)
+                    stock = (ordered == max_quantity)
+
+                totals = ordered * unit_price
+
+                if self.__saved >= totals:
+                    self.__saved -= totals
+                else:
+                    self.__saved += (self.__max_amount_buy - totals)
+
+                self.__total += totals
+            return (stock, {st.UNIT_PRICE: unit_price,
+                            st.ORDERED: ordered,
+                            st.TOTALS: totals,
+                            })
+
+        except Exception as e:
+            raise Exception(e)
+
+    def order_product(self, product_name, model, color, quantity):
+
+        try:
+            real_quantity_purchase = 0
+            data_of_purchase = None
+
+            while(real_quantity_purchase < quantity):
+
+                stock, data_of_purchase = self.___order_product(
+                    product_name, model, color, quantity - real_quantity_purchase)
+
+                if (not data_of_purchase[st.UNIT_PRICE]) or (not stock):
+                    data_of_purchase[st.ORDERED] = real_quantity_purchase
+                    return data_of_purchase
+
+                real_quantity_purchase += data_of_purchase[st.ORDERED]
+
+            data_of_purchase[st.ORDERED] = real_quantity_purchase
+            data_of_purchase[st.TOTALS] = data_of_purchase[st.UNIT_PRICE] * \
+                real_quantity_purchase
+
+            return data_of_purchase
+
+        except Exception as e:
+            message = st.MESSAGE_CANNOT_ORDER_PRODUCT + f':{ str(e)}'
+            self.__log.LogError(message)
+
+            raise Exception(e)
+
+    def buy(self, type_of_payment):
+
+        try:
+
+            (purchase_order, total_shipping) = self.__buy_elements(type_of_payment)
+
+            return {st.TOTAL_S_SHIPPING: self.__total,
+                    st.COST_SHIPPING: total_shipping,
+                    st.TOTAL_C_SHIPPING: self.__total + total_shipping,
+                    st.DATE_PURCHASE: purchase_order}
+
+        except Exception as e:
+            message = st.MESSAGE_PURCHASE_NOT_DONE + f':{ str(e)}'
+            self.__log.LogError(message)
+
+            raise Exception(e)
+
     def quit(self):
         self.__wd.quit()
 
@@ -274,105 +373,48 @@ def main():
 
     try:
 
-        page = MyStore()
-        page.open_store()
+        purchasing_manager = MyStore()
+        file_products = Excel(st.ARCHIVO_STORE, st.MAX_COLUMS)
+        list_products = []
 
-        page.register_user()
-        file = Excel(st.ARCHIVO_STORE, st.MAX_COLUMS)
+        for data_product in file_products.rows():
 
-        purchase_unitary_limit = st.PURCHASE_UNITARY_LIMIT
-        saved = 0.0
-
-        spent_total = 0.0
-        waiting_to_buy = []
-        not_found = []
-
-        list_elements_to_buy = []
-
-        for data_element in file.rows():
-
-            page.search_dress(data_element[st.NAME_ELEMENT])
-            color = ((data_element[st.COLOR]).replace(
+            product_name = data_product[st.NAME_ELEMENT]
+            color = ((data_product[st.COLOR]).replace(
                 st.SEPARATE_COLOR, '')).title()
-            unit_price = page.find_model(data_element[st.MODEL], color)
+            model = data_product[st.MODEL]
+            quantity = int(data_product[st.AMOUNT])
 
-            if unit_price:
+            data_purchase = purchasing_manager.order_product(
+                product_name, model, color, quantity)
 
-                data_element[st.UNIT_PRICE] = unit_price
-                quantity = int(data_element[st.AMOUNT])
-                total = quantity * unit_price
-                max_quantity = int(purchase_unitary_limit // unit_price)
+            data_product[st.PURCHARSE_GENERATED_ORDER] = (
+                st.YES if data_purchase[st.ORDERED] > 0 else st.NO)
+            data_product.update(data_purchase)
 
-                if total < purchase_unitary_limit:
-                    ordered = page.add_to_cart(quantity)
-                    saved += (purchase_unitary_limit -
-                              (unit_price * ordered))
-                    spent_total += total
+            list_products.append(data_product)
 
-                else:
+        data_purchasing = purchasing_manager.buy(st.CARD)
 
-                    ordered = page.add_to_cart(max_quantity)
-                    saved += (purchase_unitary_limit -
-                              (ordered * purchase_unitary_limit))
+        new_header = list(list_products[0].keys())
+        file_products.write_header(new_header)
 
-                    waiting_to_buy.append(
-                        (ordered - max_quantity, data_element))
-                    spent_total += (ordered * unit_price)
-            else:
-                not_found.append(data_element)
-                saved += purchase_unitary_limit
+        file_products.load_fil(list_products, new_header)
 
-            list_elements_to_buy.append(data_element)
+        column = 1
+        last_colum = len(new_header)
+        row = len(list_products) + 2
+        for (key, value) in data_purchasing.items():
+            file_products.add_cell(xrow=row, ycol=column, value=key)
+            file_products.add_cell(xrow=row, ycol=last_colum, value=value)
+            row += 1
 
-        for (quantity, data_element) in waiting_to_buy:
-
-            page.search_dress(data_element[st.NAME_ELEMENT])
-            color = ((data_element[st.COLOR]).replace(
-                st.SEPARATE_COLOR, '')).title()
-            unit_price = page.find_model(data_element[st.MODEL], color)
-
-            if unit_price:
-                data_element[st.UNIT_PRICE] = unit_price
-                total = quantity * unit_price
-                max_quantity = int(purchase_unitary_limit // unit_price)
-
-                if total < purchase_unitary_limit and total < saved:
-                    ordered = page.add_to_cart(quantity)
-                    gastado = (ordered*unit_price)
-                    saved -= gastado
-                    spent_total += gastado
-                else:
-
-                    ordered = page.add_to_cart(max_quantity)
-                    gastado = (ordered*unit_price)
-                    saved -= gastado
-                    waiting_to_buy.append(
-                        (ordered - max_quantity, data_element))
-                    spent_total += (ordered*unit_price)
-
-        (purchase_order, cost_shipping) = page.buy_elements(CARD)
-
-        saved -= cost_shipping
-        spent_total += cost_shipping
-
-        for data_element_to_buy in list_elements_to_buy:
-            if data_element_to_buy[st.UNIT_PRICE]:
-                data_element_to_buy[st.PURCHARSE_GENERATED_ORDER] = purchase_order
-
-        file.load_fil(list_elements_to_buy, file.header())
-        file.save()
-
-        # time.sleep(30)
+        file_products.save()
+        purchasing_manager.quit()
 
     except Exception as e:
+        print(e)
 
-        # message = st.MESSAGE_UNEXPECTED_ERROR
-        raise Exception(e)
-
-    finally:
-
-        page.quit()
 
 if __name__ == '__main__':
     main()
-
