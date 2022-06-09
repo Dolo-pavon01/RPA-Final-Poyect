@@ -1,8 +1,7 @@
-
 import pyautogui
 from excel.excel import Excel
 from os import remove
-import settings.settings as st
+import web_store_const as st
 from logs.sistem_log import MySystemLogs
 
 
@@ -35,7 +34,11 @@ class CalyxBotBills:
         self.__bot.write(text, interval=st.INTER_OF_WRITE)
 
     def open_app(self):
-        self.__locate_and_click_center_on_screnn(st.OPEN_ICON)
+        self.__bot.hotkey('win', 'r')
+        self.__write("C:\Calyx.Invoices.exe")
+        self.__bot.press('enter') 
+
+        # self.__locate_and_click_center_on_screnn(st.OPEN_ICON)
 
     def write_main_id(self, text):
         self.__locate_and_click_center_on_screnn(st.MAIN_ID),
@@ -88,6 +91,8 @@ def main():
             for text in [str(id), name, str(cost), str(amount), str(subtotal)]:
                 app.write_in_cel(text)
                 app.go_next()
+                
+            
 
             remove(f'./facturas/{name_bill}.xlsx')
 
