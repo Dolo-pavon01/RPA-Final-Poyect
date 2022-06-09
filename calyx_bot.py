@@ -36,9 +36,7 @@ class CalyxBotBills:
     def open_app(self):
         self.__bot.hotkey('win', 'r')
         self.__write("C:\Calyx.Invoices.exe")
-        self.__bot.press('enter') 
-
-        # self.__locate_and_click_center_on_screnn(st.OPEN_ICON)
+        self.__bot.press('enter')
 
     def write_main_id(self, text):
         self.__locate_and_click_center_on_screnn(st.MAIN_ID),
@@ -91,9 +89,6 @@ def main():
             for text in [str(id), name, str(cost), str(amount), str(subtotal)]:
                 app.write_in_cel(text)
                 app.go_next()
-                
-            
-
             remove(f'./facturas/{name_bill}.xlsx')
 
         app.save_bills()
